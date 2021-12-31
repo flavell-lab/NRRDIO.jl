@@ -70,3 +70,8 @@ function read_img(nrrd::NRRD)
         read!(GzipDecompressorStream(f), data)
     end
 end
+
+function spacing(nrrd::NRRD)
+    spacing_str = nrrd.header_dict["space directions"]
+    Tuple([parse(Float64,split(s[2:end-1],",")[i]) for (i, s) = enumerate(split(spacing_str))])
+end
