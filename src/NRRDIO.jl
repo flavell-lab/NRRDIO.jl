@@ -34,5 +34,6 @@ export nrrd_header,
     read_header_str,
     nrrd_header,
     NRRD,
-    read_img
+    read_img,
+    spacing
 end # module
