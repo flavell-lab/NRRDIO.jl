@@ -1,7 +1,7 @@
 module NRRDIO
 using CodecZlib, TranscodingStreams, DataStructures
 
-const DICT_DTYPE_W = Dict{String,DataType}("uint8"=>UInt8,
+const DICT_DTYPE_R = Dict{String,DataType}("uint8"=>UInt8,
     "int8"=>Int8,
     "uint16"=>UInt16,
     "int16"=>Int16,
@@ -17,7 +17,7 @@ const DICT_DTYPE_W = Dict{String,DataType}("uint8"=>UInt8,
     "unsigned short"=>UInt16,
     "short"=>Int16)
 
-const DICT_DTYPE_R = Dict{DataType,String}(UInt8=>"uint8",
+const DICT_DTYPE_W = Dict{DataType,String}(UInt8=>"uint8",
     Int8=>"int8",
     UInt16=>"uint16",
     Int16=>"int16",
