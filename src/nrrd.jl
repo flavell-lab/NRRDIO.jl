@@ -15,9 +15,34 @@ encoding: gzip
 space origin: (0,0,0)"
 end
 
+function nrrd_header(type_pix::DataType, sizes::Tuple)
+    ret_str = "NRRD0001
+# Complete NRRD file format specification at:
+# http://teem.sourceforge.net/nrrd/format.html
+type: $(DICT_DTYPE_W[type_pix])
+dimension: $(length(sizes))
+space: left-posterior-superior
+sizes: "
+    for size in sizes
+        ret_str *= "$(size) "
+    end
+    ret_str *= "endian: little
+encoding: gzip"
+    return ret_str
+end
+
 function write_nrrd(path_nrrd::String, data::AbstractArray, spacing::Tuple{Float64, Float64, Float64})
 
     header_str = nrrd_header(eltype(data), spacing, size(data))
+    write(path_nrrd, header_str * "\n\n")
+
+    open(GzipCompressorStream, path_nrrd, "a") do stream
+        write(stream, data)
+    end
+end
+
+function write_nrrd(path_nrrd::String, data::AbstractArray)
+    header_str = nrrd_header(eltype(data), size(data))
     write(path_nrrd, header_str * "\n\n")
 
     open(GzipCompressorStream, path_nrrd, "a") do stream
