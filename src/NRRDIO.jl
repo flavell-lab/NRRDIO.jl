@@ -28,12 +28,14 @@ const DICT_DTYPE_W = Dict{DataType,String}(UInt8=>"uint8",
     Float32=>"float",
     Float64=>"double");
 include("nrrd.jl")
-
+include("util.jl")
 export nrrd_header,
     write_nrrd,
     read_header_str,
     nrrd_header,
     NRRD,
     read_img,
-    spacing
+    spacing,
+    # util.jl
+    compress_nrrd
 end # module
