@@ -1,53 +1,40 @@
 #### write
 function nrrd_header(type_pix::DataType, spacing::Tuple{Float64, Float64, Float64},
-        sizes::Tuple{Int64, Int64, Int64})
+        sizes::Union{Tuple{Int64,Int64,Int64}, Tuple{Int64,Int64,Int64,Int64}}, compression=true)
     "NRRD0004
-# Complete NRRD file format specification at:
-# http://teem.sourceforge.net/nrrd/format.html
-type: $(DICT_DTYPE_W[type_pix])
-dimension: 3
-space: left-posterior-superior
-sizes: $(sizes[1]) $(sizes[2]) $(sizes[3])
-space directions: ($(spacing[1]),0,0) (0,$(spacing[2]),0) (0,0,$(spacing[3]))
-kinds: domain domain domain
-endian: little
-encoding: gzip
-space origin: (0,0,0)"
-end
-
-function nrrd_header(type_pix::DataType, sizes::Tuple)
-    ret_str = "NRRD0001
 # Complete NRRD file format specification at:
 # http://teem.sourceforge.net/nrrd/format.html
 type: $(DICT_DTYPE_W[type_pix])
 dimension: $(length(sizes))
 space: left-posterior-superior
-sizes: "
-    for size in sizes
-        ret_str *= "$(size) "
-    end
-    ret_str *= "endian: little
-encoding: gzip"
-    return ret_str
+sizes: $(mapfoldl(x->string(x) * " ", *, sizes)[1:end-1])
+space directions: ($(spacing[1]),0,0) (0,$(spacing[2]),0) (0,0,$(spacing[3])) $(length(sizes)==4 ? "none" : "")
+kinds: domain domain domain $(length(sizes)==4 ? "RGB-color" : "")
+endian: little
+encoding: $(compression ? "gzip" : "raw")
+space origin: (0,0,0)"
 end
 
-function write_nrrd(path_nrrd::String, data::AbstractArray, spacing::Tuple{Float64, Float64, Float64})
+function write_nrrd(path_nrrd::String, data::AbstractArray,
+        header_str::String, compression=true)
 
-    header_str = nrrd_header(eltype(data), spacing, size(data))
-    write(path_nrrd, header_str * "\n\n")
-
-    open(GzipCompressorStream, path_nrrd, "a") do stream
-        write(stream, data)
+    n_bytes = write(path_nrrd, header_str * "\n\n")
+    if compression
+        return n_bytes + open(GzipCompressorStream, path_nrrd, "a") do stream
+            write(stream, data)
+        end
+    else
+        return n_bytes + open(path_nrrd, "a") do stream
+            write(stream, data)
+        end
     end
 end
 
-function write_nrrd(path_nrrd::String, data::AbstractArray)
-    header_str = nrrd_header(eltype(data), size(data))
-    write(path_nrrd, header_str * "\n\n")
+function write_nrrd(path_nrrd::String, data::AbstractArray,
+        spacing::Tuple{Float64, Float64, Float64}, compression=true)
 
-    open(GzipCompressorStream, path_nrrd, "a") do stream
-        write(stream, data)
-    end
+    header_str = nrrd_header(eltype(data), spacing, size(data), compression)
+    write_nrrd(path_nrrd, data, header_str, compression)
 end
 
 #### read
@@ -89,10 +76,17 @@ function read_img(nrrd::NRRD)
     dtype = DICT_DTYPE_R[nrrd.header_dict["type"]]
     sizes = parse.(Int, split(nrrd.header_dict["sizes"]))
     data = Array{dtype}(undef, sizes...)
-
+    encoding = nrrd.header_dict["encoding"]
+    
     open(nrrd.path_nrrd, "r") do f
         seek(f, nrrd.data_psotion)
-        read!(GzipDecompressorStream(f), data)
+        if encoding == "gzip"
+            read!(GzipDecompressorStream(f), data)
+        elseif encoding == "raw"
+            read!(f, data)
+        else
+            error("unsupported encoding type")
+        end
     end
 end
 
